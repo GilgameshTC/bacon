@@ -21,7 +21,8 @@ class TransactionManager: Observer {
 
     func notify(_ value: Any) {
         guard let transaction = value as? Transaction else {
-            // Observer is responsible of knowing what object types it observes
+            // Observer is responsible for knowing what object types it observes
+            // TransactionManager only observes Transactions
             fatalError("Unable to type cast observed value to Transaction.")
         }
         // Handle transaction deletion
@@ -33,7 +34,11 @@ class TransactionManager: Observer {
             } catch {
                 transaction.deleteFailureCallback(error.localizedDescription)
             }
+            return
         }
+        // Handle transaction update
+        // TODO
+        // try storageManager.updateTransaction(transaction)
     }
 
     private func observeTransactions(_ transactions: [Transaction]) -> [Transaction] {

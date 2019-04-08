@@ -97,10 +97,11 @@ class StorageCouchBaseDB {
         return folderPath
     }
 
-    private func createMutableDocument(from transaction: Transaction) throws -> MutableDocument {
+    private func createMutableDocument(from transaction: Transaction, id: String? = nil) throws -> MutableDocument {
         do {
             let transactionData = try transaction.asDictionary()
-            let transactionDocument = MutableDocument(data: transactionData)
+            // If id is nil, a random UID will be assigned to the document
+            let transactionDocument = MutableDocument(id: id, data: transactionData)
             transactionDocument.setDate(transaction.date, forKey: Constants.rawDateKey)
             return transactionDocument
         } catch {
@@ -208,6 +209,40 @@ class StorageCouchBaseDB {
             throw StorageError(message: """
                 Encounter error deleting \(transaction) from database.
             """)
+        }
+    }
+
+    func updateTransaction(_ transaction: Transaction) throws {
+        // Fetch the specific document from database
+        guard let transactionId = transactionMapping[transaction] else {
+            log.info("""
+                StorageCouchBaseDB.updateTransaction():
+                Encounter error updating transaction in database.
+                Unable to find mapping of transaction object to its unique id in the database.
+                Throwing StorageError.
+            """)
+            throw StorageError(message: """
+                Unable to find mapping of transaction object to its unique id in the database.
+            """)
+        }
+        let transactionDocument = try createMutableDocument(from: transaction, id: transactionId)
+        log.info("""
+            StorageCouchBaseDB.updateTransaction() with argument:
+            transaction:\(transaction).
+            """)
+        // Update the document
+        do {
+            try transactionDatabase.saveDocument(transactionDocument)
+        } catch {
+            log.info("""
+                StorageCouchBaseDB.updateTransaction() with argument:
+                transaction:\(transaction).
+                Encounter error updating transaction in database.
+                Throwing StorageError.
+                """)
+            throw StorageError(message: """
+                Encounter error updating \(transaction) in database.
+                """)
         }
     }
 
